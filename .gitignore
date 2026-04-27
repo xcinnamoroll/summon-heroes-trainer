@@ -1,0 +1,6 @@
+.claude/
+*.png
+*.webp
+*.ico
+*.exe
+settings.ini
