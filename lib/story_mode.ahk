@@ -75,12 +75,8 @@ SpamClick() {
 ; Toggle Handlers
 ; ------------------------------------------------------------------------------
 OnToggleTeleport(*) {
-    global teleportEnabled, chkTeleport, isAutomationEnabled
+    global teleportEnabled, chkTeleport
     teleportEnabled := chkTeleport.Value
-    if !teleportEnabled
-        SetTimer WatchForTeleportButton, 0
-    else if isAutomationEnabled
-        SetTimer WatchForTeleportButton, TELEPORT_INTERVAL_MS
     SaveSettings()
 }
 
@@ -122,11 +118,8 @@ ApplySettings(*) {
 
     try {
         val := Integer(edtTeleport.Value)
-        if (val >= 100) {
+        if (val >= 100)
             TELEPORT_INTERVAL_MS := val
-            if (isAutomationEnabled && teleportEnabled)
-                SetTimer WatchForTeleportButton, TELEPORT_INTERVAL_MS
-        }
     } catch {
     }
 
@@ -166,9 +159,6 @@ StopAllAutomation() {
     autoRetryCount := 0
     autoPhase := "retry"
     autoAdvanceStartTick := 0
-    SetTimer WatchForRetryButton, 0
-    SetTimer WatchForAutoCycle, 0
-    SetTimer WatchForTeleportButton, 0
     SetTimer UpdateStatusTip, 0
     StopSpamClicking()
     StopAutoChestScan()
@@ -213,26 +203,15 @@ ToggleAutomation(mode) {
         return
     }
 
-    SetTimer WatchForRetryButton, 0
-    SetTimer WatchForAutoCycle, 0
-
     isAutomationEnabled := true
     automationMode := mode
     autoRetryCount := edtCurrentRetry.Value = "" ? 0 : Integer(edtCurrentRetry.Value)
     autoPhase := "retry"
     autoAdvanceStartTick := 0
 
-    if (mode = "retry") {
-        SetTimer WatchForRetryButton, RETRY_SEARCH_INTERVAL_MS
-    } else if (mode = "auto") {
-        SetTimer WatchForAutoCycle, RETRY_SEARCH_INTERVAL_MS
-    }
-
     SetModeBtn(btnAuto, mode = "auto")
     SetModeBtn(btnRetry, mode = "retry")
 
-    if teleportEnabled
-        SetTimer WatchForTeleportButton, TELEPORT_INTERVAL_MS
     SetTimer UpdateStatusTip, STATUS_UPDATE_MS
     UpdateStatusTip()
     StartAutoChestScan()
@@ -510,31 +489,23 @@ ClickFoundButton(coords, preDelay := 0, postDelay := 0) {
 ; ------------------------------------------------------------------------------
 ; Auto-Cycle Logic (retry N times, then advance to next stage, repeat)
 ; ------------------------------------------------------------------------------
-WatchForAutoCycle() {
+WatchForAutoCycleTick(ctx) {
     global isAutomationEnabled, autoRetryCount, autoPhase, autoAdvanceStartTick
-    global AUTO_RETRIES_BEFORE_ADVANCE, AUTO_ADVANCE_GRACE_MS
-    global RETRY_CLICK_COOLDOWN_MS, RETRY_SEARCH_INTERVAL_MS
+    global AUTO_RETRIES_BEFORE_ADVANCE, AUTO_ADVANCE_GRACE_MS, RETRY_CLICK_COOLDOWN_MS
     global automationMode, btnAuto, btnRetry, lastAction
 
-    if !isAutomationEnabled || !WinExist(ROBLOX_EXE)
-        return
-
-    cap := CaptureRobloxWindow()
-    if !cap
+    if !isAutomationEnabled || automationMode != "auto" || !WinExist(ROBLOX_EXE)
         return
 
     if (autoPhase = "retry") {
-        coords := SearchCapture(cap, RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-        if !coords {
-            ReleaseCapture(cap)
+        coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+        if !coords
             return
-        }
 
         if (autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE) {
-            advCoords := SearchCapture(cap, NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
+            advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
             if !advCoords
-                advCoords := SearchCapture(cap, NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
-            ReleaseCapture(cap)
+                advCoords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
             if advCoords {
                 lastAction := "Clicked next stage"
                 ClickFoundButton(advCoords)
@@ -548,7 +519,6 @@ WatchForAutoCycle() {
             return
         }
 
-        ReleaseCapture(cap)
         lastAction := "Clicked retry"
         ClickFoundButton(coords)
         autoRetryCount++
@@ -557,10 +527,9 @@ WatchForAutoCycle() {
     }
 
     if (autoPhase = "advance") {
-        coords := SearchCapture(cap, NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
+        coords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
         if !coords
-            coords := SearchCapture(cap, NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
-        ReleaseCapture(cap)
+            coords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
         if coords {
             lastAction := "Clicked next stage"
             ClickFoundButton(coords)
@@ -574,13 +543,13 @@ WatchForAutoCycle() {
         if (A_TickCount - autoAdvanceStartTick < AUTO_ADVANCE_GRACE_MS)
             return
 
-        ; Grace period expired — fall back to retry-only mode
+        ; Grace period expired — fall back to retry-only mode. No timer fiddling
+        ; needed; the retry tick gates on automationMode, the auto tick will
+        ; early-return on the next call.
         autoRetryCount := 0
         autoPhase := "retry"
         autoAdvanceStartTick := 0
         automationMode := "retry"
-        SetTimer WatchForAutoCycle, 0
-        SetTimer WatchForRetryButton, RETRY_SEARCH_INTERVAL_MS
         SetModeBtn(btnAuto, false)
         SetModeBtn(btnRetry, true)
     }
@@ -589,13 +558,13 @@ WatchForAutoCycle() {
 ; ------------------------------------------------------------------------------
 ; Retry Button Watcher
 ; ------------------------------------------------------------------------------
-WatchForRetryButton() {
-    global isAutomationEnabled, RETRY_CLICK_COOLDOWN_MS, lastAction
+WatchForRetryButtonTick(ctx) {
+    global isAutomationEnabled, automationMode, RETRY_CLICK_COOLDOWN_MS, lastAction
 
-    if !isAutomationEnabled || !WinExist(ROBLOX_EXE)
+    if !isAutomationEnabled || automationMode != "retry" || !WinExist(ROBLOX_EXE)
         return
 
-    coords := FindButton(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+    coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
     if !coords
         return
 
@@ -606,22 +575,37 @@ WatchForRetryButton() {
 
 ; ------------------------------------------------------------------------------
 ; Teleport Button Watcher
+; Registered at RETRY_SEARCH_INTERVAL_MS (500 ms) but self-throttles to
+; TELEPORT_INTERVAL_MS via lastFire so the user-tunable interval applies
+; without the master needing to re-register on settings change.
 ; ------------------------------------------------------------------------------
-WatchForTeleportButton() {
-    global isAutomationEnabled, TELEPORT_HOLD_MS, idleTimeMs, IDLE_THRESHOLD_MS, teleportEnabled, lastAction
+WatchForTeleportButtonTick(ctx) {
+    global isAutomationEnabled, TELEPORT_INTERVAL_MS, TELEPORT_HOLD_MS
+    global idleTimeMs, IDLE_THRESHOLD_MS, teleportEnabled, lastAction
+    global g_armedPaths, pathActive
+    static lastFire := 0
 
     if !isAutomationEnabled || !teleportEnabled || !WinExist(ROBLOX_EXE)
         return
     if (g_armedPaths.Length > 0 || pathActive)
         return
-
     if (idleTimeMs < IDLE_THRESHOLD_MS)
         return
+    if (A_TickCount - lastFire < TELEPORT_INTERVAL_MS)
+        return
 
-    coords := FindButton(TELEPORT_IMAGE, TELEPORT_IMAGE_VARIATION)
+    coords := ctx.FindPrintWindow(TELEPORT_IMAGE, TELEPORT_IMAGE_VARIATION)
     if !coords
         return
 
     lastAction := "Clicked teleport"
     ClickFoundButton(coords, 100, TELEPORT_HOLD_MS)
+    lastFire := A_TickCount
 }
+
+; ------------------------------------------------------------------------------
+; Scan registration
+; ------------------------------------------------------------------------------
+RegisterScanner(RETRY_SEARCH_INTERVAL_MS, WatchForAutoCycleTick)
+RegisterScanner(RETRY_SEARCH_INTERVAL_MS, WatchForRetryButtonTick)
+RegisterScanner(RETRY_SEARCH_INTERVAL_MS, WatchForTeleportButtonTick)
