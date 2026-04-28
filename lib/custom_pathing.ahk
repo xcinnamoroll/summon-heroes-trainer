@@ -567,7 +567,6 @@ ArmPath(path) {
     if (g_armedPaths.Length = 1) {
         global g_armedScanCount
         g_armedScanCount := 0
-        SetTimer WatchArmedPaths, PATH_TRIGGER_INTERVAL_MS
     }
     return true
 }
@@ -582,8 +581,6 @@ DisarmPath(name) {
                 g_needleLastFound.Delete(armed.tempPath)
             try FileDelete armed.tempPath
             g_armedPaths.RemoveAt(i)
-            if (g_armedPaths.Length = 0)
-                SetTimer WatchArmedPaths, 0
             return true
         }
     }
@@ -600,7 +597,6 @@ DisarmAllPaths() {
         try FileDelete armed.tempPath
     }
     g_armedPaths := []
-    SetTimer WatchArmedPaths, 0
 }
 
 IsPathArmed(name) {
@@ -611,12 +607,14 @@ IsPathArmed(name) {
     return false
 }
 
-WatchArmedPaths() {
+WatchArmedPathsTick(ctx) {
     global g_armedPaths, pathActive, ROBLOX_EXE, PATH_TRIGGER_VARIATION
     global txtPathState, txtPathActive, txtPathStep, txtPathLastAction
     global COLOR_STATE_SUCCESS, COLOR_STATE_INFO, COLOR_STATE_WARNING
     global g_armedScanCount
 
+    if (g_armedPaths.Length = 0)
+        return
     if pathActive
         return
     if !WinActive(ROBLOX_EXE) {
@@ -651,7 +649,7 @@ WatchArmedPaths() {
             if (imagePath = "" || !FileExist(imagePath))
                 continue
             regionHint := armed.path.trigger.HasProp("region") ? armed.path.trigger.region : ""
-            coords := FindPathTrigger(imagePath, PATH_TRIGGER_VARIATION, regionHint)
+            coords := ctx.FindLive(imagePath, PATH_TRIGGER_VARIATION, regionHint)
             if coords {
                 if !armed.lastFound {
                     armed.lastFound := true
@@ -1256,3 +1254,8 @@ OnPathExportClick() {
     }
     SetShadowText(txtPathLastAction, "Exported: " name, "c" COLOR_STATE_SUCCESS)
 }
+
+; ==============================================================================
+; Scan registration
+; ==============================================================================
+RegisterScanner(PATH_TRIGGER_INTERVAL_MS, WatchArmedPathsTick)
