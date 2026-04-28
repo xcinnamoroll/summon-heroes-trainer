@@ -27,6 +27,7 @@ TraySetIcon APP_DATA_DIR "\icon.ico"
 #Include lib/config.ahk
 #Include lib/helpers.ahk
 #Include lib/gui_components.ahk
+#Include lib/scan_master.ahk
 #Include lib/settings.ahk
 
 LoadSettings()
@@ -85,5 +86,6 @@ Insert:: {
 
 SetTimer CheckMouseIdle, IDLE_CHECK_INTERVAL_MS
 SetTimer UpdateActiveWindow, 500
+SetTimer ScanMasterTick, SCAN_MASTER_INTERVAL_MS
 SetTimer CheckForUpdatesOnStartup, -1000
 SetTimer WarnIfAntiCheatRunning, -500
