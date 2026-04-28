@@ -38,10 +38,6 @@ OnPvPAutoBuyToggle(slug, *) {
     btn.Opt("Background" (newVal ? COLOR_BG_ACTIVE : COLOR_BG_BTN))
     btn.Redraw()
     SaveSettings()
-    if IsAnyPvPAutoBuyEnabled()
-        StartPvPShopScan()
-    else
-        StopPvPShopScan()
 }
 
 OnPvPOffsetChange(slug, which, edit, *) {
@@ -131,17 +127,6 @@ IsAnyPvPAutoBuyEnabled() {
     return false
 }
 
-StartPvPShopScan() {
-    global PVP_SHOP_SCAN_INTERVAL_MS
-    SetTimer ScanPvPShop, PVP_SHOP_SCAN_INTERVAL_MS
-}
-
-StopPvPShopScan() {
-    global g_pvpSavedMouse
-    SetTimer ScanPvPShop, 0
-    RestoreSavedMouseIfAny()
-}
-
 RestoreSavedMouseIfAny() {
     global g_pvpSavedMouse
     if !g_pvpSavedMouse
@@ -162,7 +147,7 @@ IsBuyButtonGreen(x, y) {
     return (g > 120 && g > r + 30 && g > b + 30)
 }
 
-ScanPvPShop() {
+ScanPvPShopTick(ctx) {
     global ROBLOX_EXE, PVP_SHOP_ITEMS, pvpShopAutoBuy
     global pvpShopOffsetX, pvpShopOffsetY, PVP_SHOP_IMAGE_VARIATION
     global g_pvpSavedMouse
@@ -177,7 +162,7 @@ ScanPvPShop() {
         detectPath := PvPShopDetectPath(item.slug)
         if !FileExist(detectPath)
             continue
-        coords := FindPathTrigger(detectPath, PVP_SHOP_IMAGE_VARIATION, "")
+        coords := ctx.FindLive(detectPath, PVP_SHOP_IMAGE_VARIATION, "")
         if !coords
             continue
         clickX := coords.x + pvpShopOffsetX.Get(item.slug, 0)
@@ -264,3 +249,8 @@ AddPvPShopItemCard(pageNum, cardX, cardY, cardW, cardH, item) {
     btn.OnEvent("Click", OnPvPAutoBuyToggle.Bind(item.slug))
     g_pvpAutoBuyBtns[item.slug] := btn
 }
+
+; ==============================================================================
+; Scan registration
+; ==============================================================================
+RegisterScanner(PVP_SHOP_SCAN_INTERVAL_MS, ScanPvPShopTick)

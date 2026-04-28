@@ -48,8 +48,6 @@ g_gdip := GdipInit()
 mainGui.Show("w" GUI_WIDTH " h" GUI_HEIGHT)
 RefreshPathLists()
 UpdateChestStatusIdle()
-if IsAnyPvPAutoBuyEnabled()
-    StartPvPShopScan()
 
 ; If we exit (user close, script reload, crash handled by AHK), release any
 ; path keys that might still be held down so the user isn't left with a
