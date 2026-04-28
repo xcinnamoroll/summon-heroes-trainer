@@ -204,7 +204,7 @@ OnToggleAutoChest(*) {
 ; Runtime: scan for map loading images while Story Mode auto/retry is active
 ; ==============================================================================
 StartAutoChestScan() {
-    global autoChestEnabled, CHEST_SCAN_INTERVAL_MS
+    global autoChestEnabled
     global g_chestFoundState, g_chestActiveMap, g_chestArmedPath
     global txtChestState, COLOR_STATE_INFO
     if !autoChestEnabled
@@ -212,14 +212,12 @@ StartAutoChestScan() {
     g_chestFoundState := Map()
     g_chestActiveMap := ""
     g_chestArmedPath := ""
-    SetTimer ScanChestMaps, CHEST_SCAN_INTERVAL_MS
     if IsSet(txtChestState)
         SetShadowText(txtChestState, "Scanning", "c" COLOR_STATE_INFO)
 }
 
 StopAutoChestScan() {
     global g_chestFoundState, g_chestActiveMap, g_chestArmedPath
-    SetTimer ScanChestMaps, 0
     ; Disarm anything Auto Chest armed so it doesn't keep firing after stop.
     if (g_chestArmedPath != "" && IsPathArmed(g_chestArmedPath))
         DisarmPath(g_chestArmedPath)
@@ -245,14 +243,14 @@ UpdateChestStatusIdle() {
     SetShadowText(txtChestPath, "-", "c" COLOR_STATE_INFO)
 }
 
-; Timer callback. The loading image selects which path Auto Chest arms —
-; the path's own trigger is what actually starts playback. Uses per-map
-; edge detection so we only act on the transition from not-visible to
-; visible (one arm action per map entry). When the detected map changes,
-; the previously armed path is disarmed first. Gated on WinActive so we
-; don't touch arm state while Roblox is backgrounded; not gated on
-; pathActive because armed-but-idle state is fine during playback.
-ScanChestMaps() {
+; Scan tick. The loading image selects which path Auto Chest arms — the
+; path's own trigger is what actually starts playback. Uses per-map edge
+; detection so we only act on the transition from not-visible to visible
+; (one arm action per map entry). When the detected map changes, the
+; previously armed path is disarmed first. Gated on WinActive so we don't
+; touch arm state while Roblox is backgrounded; not gated on pathActive
+; because armed-but-idle state is fine during playback.
+ScanChestMapsTick(ctx) {
     global ROBLOX_EXE, autoChestEnabled, isAutomationEnabled
     global AUTO_CHEST_MAPS, g_chestFoundState, g_chestActiveMap, g_chestArmedPath
     global PATH_TRIGGER_VARIATION
@@ -282,7 +280,7 @@ ScanChestMaps() {
         if (pathName = "")
             continue
 
-        coords := FindPathTrigger(imgPath, PATH_TRIGGER_VARIATION, "")
+        coords := ctx.FindLive(imgPath, PATH_TRIGGER_VARIATION, "")
         wasFound := g_chestFoundState.Get(mapName, false)
 
         if coords {
@@ -405,3 +403,8 @@ AddChestMapSection(pageNum, y, mapName) {
 
     return divY + 10
 }
+
+; ==============================================================================
+; Scan registration
+; ==============================================================================
+RegisterScanner(CHEST_SCAN_INTERVAL_MS, ScanChestMapsTick)
