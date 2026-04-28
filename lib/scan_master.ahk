@@ -88,8 +88,10 @@ ScanMasterTick() {
             return
         ctx := ScanContext()
         try {
+            ; Use .Call() so AHK v2 doesn't treat sub.fn(ctx) as a method
+            ; invocation and pass `sub` as the implicit first argument.
             for sub in toRun
-                sub.fn(ctx)
+                sub.fn.Call(ctx)
         } finally
             ctx.Release()
     } finally
