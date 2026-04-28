@@ -1001,9 +1001,9 @@ OnPathArmClick() {
     UpdatePathStatusIdle()
 }
 
-; Single-shot trigger test — runs one FindButton against the selected path's
-; trigger image and reports the result in the Last action row, so the user
-; can verify detection without actually arming.
+; Single-shot trigger test — runs one FindPathTrigger against the selected
+; path's trigger image and reports the result in the Last action row, so the
+; user can verify detection without actually arming.
 OnPathTestTriggerClick() {
     global ddPaths, txtPathLastAction, PATHS_DIR, ROBLOX_EXE, PATH_TRIGGER_VARIATION
     global COLOR_STATE_SUCCESS, COLOR_STATE_ERROR, COLOR_STATE_INFO

@@ -9,7 +9,7 @@ CoordMode "Mouse", "Screen"
 ; ------------------------------------------------------------------------------
 global ROBLOX_EXE := "ahk_exe RobloxPlayerBeta.exe"
 global REPO_URL := "https://github.com/xcinnamoroll/summon-heroes-trainer"
-global APP_VERSION := "1.0.96"
+global APP_VERSION := "1.0.97"
 global BTN_UPDATE_TEXT := "  🔄  Check for updates"
 
 global SETTINGS_FILE := APP_DATA_DIR "\settings.ini"

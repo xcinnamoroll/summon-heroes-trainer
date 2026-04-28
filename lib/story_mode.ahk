@@ -433,15 +433,6 @@ ScanHaystackRegion(cap, needle, variation, xMin, yMin, xMax, yMax) {
     return false
 }
 
-FindButton(imagePath, variation, region := "") {
-    cap := CaptureRobloxWindow()
-    if !cap
-        return false
-    result := SearchCapture(cap, imagePath, variation, region)
-    ReleaseCapture(cap)
-    return result
-}
-
 ; Resolve the effective region for a given imagePath:
 ;   1. explicit caller-supplied region (if non-empty)
 ;   2. per-image sidecar file <imagePath>.region (if exists, contents = name)
