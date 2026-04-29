@@ -148,7 +148,7 @@ ApplySettings(*) {
 ; ------------------------------------------------------------------------------
 StopAllAutomation() {
     global isAutomationEnabled, idleTimeMs, automationMode, lastAction
-    global autoRetryCount, g_autoSawEndRound, btnAuto, btnRetry
+    global autoRetryCount, g_autoSawEndRound, g_autoAdvanceMisses, btnAuto, btnRetry
 
     if !isAutomationEnabled
         return
@@ -157,6 +157,7 @@ StopAllAutomation() {
     automationMode := ""
     autoRetryCount := 0
     g_autoSawEndRound := false
+    g_autoAdvanceMisses := 0
     SetTimer UpdateStatusTip, 0
     StopSpamClicking()
     StopAutoChestScan()
@@ -476,9 +477,9 @@ ClickFoundButton(coords, preDelay := 0, postDelay := 0) {
 ; Auto-Cycle Logic (retry N times, then advance to next stage, repeat)
 ; ------------------------------------------------------------------------------
 WatchForAutoCycleTick(ctx) {
-    global isAutomationEnabled, autoRetryCount, AUTO_RETRIES_BEFORE_ADVANCE
+    global isAutomationEnabled, autoRetryCount, AUTO_RETRIES_BEFORE_ADVANCE, AUTO_ADVANCE_MAX_MISSES
     global RETRY_CLICK_COOLDOWN_MS, automationMode, btnAuto, btnRetry, lastAction
-    global g_autoSawEndRound
+    global g_autoSawEndRound, g_autoAdvanceMisses
 
     if !isAutomationEnabled || automationMode != "auto" || !WinExist(ROBLOX_EXE)
         return
@@ -489,6 +490,7 @@ WatchForAutoCycleTick(ctx) {
     retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
     if !retryCoords {
         g_autoSawEndRound := false
+        g_autoAdvanceMisses := 0
         return
     }
     g_autoSawEndRound := true
@@ -501,18 +503,25 @@ WatchForAutoCycleTick(ctx) {
             lastAction := "Clicked next stage"
             ClickFoundButton(advCoords)
             autoRetryCount := 0
+            g_autoAdvanceMisses := 0
             Sleep RETRY_CLICK_COOLDOWN_MS
             return
         }
-        ; Round ended with Retry but no advance button — out of stages/maps.
-        ; Switch to retry-only mode.
+        ; Retry visible but no advance button matched. Could be a transient
+        ; capture/match failure, or genuinely out of stages — wait for several
+        ; consecutive misses before demoting to retry-only mode.
+        g_autoAdvanceMisses += 1
+        if (g_autoAdvanceMisses < AUTO_ADVANCE_MAX_MISSES)
+            return
         autoRetryCount := 0
+        g_autoAdvanceMisses := 0
         automationMode := "retry"
         SetModeBtn(btnAuto, false)
         SetModeBtn(btnRetry, true)
         return
     }
 
+    g_autoAdvanceMisses := 0
     lastAction := "Clicked retry"
     ClickFoundButton(retryCoords)
     autoRetryCount++

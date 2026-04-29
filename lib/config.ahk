@@ -9,7 +9,7 @@ CoordMode "Mouse", "Screen"
 ; ------------------------------------------------------------------------------
 global ROBLOX_EXE := "ahk_exe RobloxPlayerBeta.exe"
 global REPO_URL := "https://github.com/xcinnamoroll/summon-heroes-trainer"
-global APP_VERSION := "1.0.104"
+global APP_VERSION := "1.0.105"
 global BTN_UPDATE_TEXT := "  🔄  Check for updates"
 
 global SETTINGS_FILE := APP_DATA_DIR "\settings.ini"
@@ -34,6 +34,11 @@ global NEXT_MAP_IMAGE_VARIATION := 40
 
 ; Auto-cycle settings
 global AUTO_RETRIES_BEFORE_ADVANCE := 9
+; Consecutive ticks where Retry is visible but neither advance button matches
+; before Auto demotes itself to retry-only mode. Absorbs transient match
+; failures (PrintWindow returning a partial frame, animation in progress, etc.)
+; so a single bad scan doesn't kill an active grind.
+global AUTO_ADVANCE_MAX_MISSES := 3
 
 ; Human-like bezier slide settings
 global BEZIER_MIN_STEPS := 10
@@ -133,6 +138,9 @@ global autoRetryCount := 0
 ; between "Retrying stage" / "Looking for next stage" and "Waiting for round
 ; to end" in the Phase row.
 global g_autoSawEndRound := false
+; Counter for consecutive "Retry visible but no advance button" ticks. Demote
+; only fires when this hits AUTO_ADVANCE_MAX_MISSES.
+global g_autoAdvanceMisses := 0
 global STATUS_UPDATE_MS := 500
 global teleportEnabled := true
 global spamClickEnabled := true
