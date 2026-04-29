@@ -197,7 +197,7 @@ SetShadowText(ctrl, text, color := "") {
 
 UpdateStatusTip() {
     global isAutomationEnabled, automationMode
-    global autoRetryCount, autoPhase, AUTO_RETRIES_BEFORE_ADVANCE
+    global autoRetryCount, AUTO_RETRIES_BEFORE_ADVANCE
     global txtStatus, txtRetries, txtPhase, txtLastAction, lastAction, edtCurrentRetry, missingImageWarned
     global COLOR_STATE_ERROR, COLOR_STATE_SUCCESS, COLOR_STATE_INFO
 
@@ -229,11 +229,13 @@ UpdateStatusTip() {
     }
 
     SetShadowText(txtRetries, autoRetryCount "/" AUTO_RETRIES_BEFORE_ADVANCE, "c" COLOR_STATE_INFO)
-    if (automationMode = "auto") {
-        SetShadowText(txtPhase, autoPhase, "c" COLOR_STATE_INFO)
-    } else {
-        SetShadowText(txtPhase, "-", "c" COLOR_STATE_INFO)
-    }
+    global g_autoSawEndRound
+    if !g_autoSawEndRound
+        SetShadowText(txtPhase, "Waiting for round to end", "c" COLOR_STATE_INFO)
+    else if (automationMode = "auto" && autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE)
+        SetShadowText(txtPhase, "Looking for next stage", "c" COLOR_STATE_INFO)
+    else
+        SetShadowText(txtPhase, "Retrying stage", "c" COLOR_STATE_INFO)
     SetShadowText(txtLastAction, lastAction, "c" COLOR_STATE_INFO)
 }
 

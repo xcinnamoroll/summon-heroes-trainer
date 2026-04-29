@@ -148,8 +148,7 @@ ApplySettings(*) {
 ; ------------------------------------------------------------------------------
 StopAllAutomation() {
     global isAutomationEnabled, idleTimeMs, automationMode, lastAction
-    global autoRetryCount, autoPhase, autoAdvanceStartTick
-    global btnAuto, btnRetry
+    global autoRetryCount, g_autoSawEndRound, btnAuto, btnRetry
 
     if !isAutomationEnabled
         return
@@ -157,8 +156,7 @@ StopAllAutomation() {
     isAutomationEnabled := false
     automationMode := ""
     autoRetryCount := 0
-    autoPhase := "retry"
-    autoAdvanceStartTick := 0
+    g_autoSawEndRound := false
     SetTimer UpdateStatusTip, 0
     StopSpamClicking()
     StopAutoChestScan()
@@ -173,8 +171,7 @@ StopAllAutomation() {
 ; Automation Toggle
 ; ------------------------------------------------------------------------------
 ToggleAutomation(mode) {
-    global isAutomationEnabled, idleTimeMs, automationMode
-    global autoRetryCount, autoPhase, autoAdvanceStartTick
+    global isAutomationEnabled, idleTimeMs, automationMode, autoRetryCount
     global RETRY_SEARCH_INTERVAL_MS, TELEPORT_INTERVAL_MS, STATUS_UPDATE_MS
     global btnAuto, btnRetry, txtStatus
 
@@ -206,8 +203,6 @@ ToggleAutomation(mode) {
     isAutomationEnabled := true
     automationMode := mode
     autoRetryCount := edtCurrentRetry.Value = "" ? 0 : Integer(edtCurrentRetry.Value)
-    autoPhase := "retry"
-    autoAdvanceStartTick := 0
 
     SetModeBtn(btnAuto, mode = "auto")
     SetModeBtn(btnRetry, mode = "retry")
@@ -483,15 +478,21 @@ ClickFoundButton(coords, preDelay := 0, postDelay := 0) {
 WatchForAutoCycleTick(ctx) {
     global isAutomationEnabled, autoRetryCount, AUTO_RETRIES_BEFORE_ADVANCE
     global RETRY_CLICK_COOLDOWN_MS, automationMode, btnAuto, btnRetry, lastAction
+    global g_autoSawEndRound
 
     if !isAutomationEnabled || automationMode != "auto" || !WinExist(ROBLOX_EXE)
         return
 
-    ; Retries maxed: prefer advance buttons. If advance isn't visible but Retry
-    ; is, the game has ended in a loss with no advance option — fall back to
-    ; retry-only mode. If neither is visible, the round is still in progress;
-    ; wait silently. (Don't demote to retry-only until end-of-round buttons
-    ; actually appear.)
+    ; End-of-round buttons all appear together, so the Retry button is the
+    ; signal that a round has ended. If it isn't visible, the round is still
+    ; in progress — do nothing.
+    retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+    if !retryCoords {
+        g_autoSawEndRound := false
+        return
+    }
+    g_autoSawEndRound := true
+
     if (autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE) {
         advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
         if !advCoords
@@ -503,35 +504,19 @@ WatchForAutoCycleTick(ctx) {
             Sleep RETRY_CLICK_COOLDOWN_MS
             return
         }
-        retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-        if retryCoords {
-            autoRetryCount := 0
-            automationMode := "retry"
-            SetModeBtn(btnAuto, false)
-            SetModeBtn(btnRetry, true)
-        }
+        ; Round ended with Retry but no advance button — out of stages/maps.
+        ; Switch to retry-only mode.
+        autoRetryCount := 0
+        automationMode := "retry"
+        SetModeBtn(btnAuto, false)
+        SetModeBtn(btnRetry, true)
         return
     }
 
-    ; Below max: prefer Retry on a loss screen. If Retry isn't visible but an
-    ; advance button is, the player won the stage cleanly — click advance.
-    retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-    if retryCoords {
-        lastAction := "Clicked retry"
-        ClickFoundButton(retryCoords)
-        autoRetryCount++
-        Sleep RETRY_CLICK_COOLDOWN_MS
-        return
-    }
-    advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
-    if !advCoords
-        advCoords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
-    if advCoords {
-        lastAction := "Clicked next stage"
-        ClickFoundButton(advCoords)
-        autoRetryCount := 0
-        Sleep RETRY_CLICK_COOLDOWN_MS
-    }
+    lastAction := "Clicked retry"
+    ClickFoundButton(retryCoords)
+    autoRetryCount++
+    Sleep RETRY_CLICK_COOLDOWN_MS
 }
 
 ; ------------------------------------------------------------------------------
@@ -539,13 +524,17 @@ WatchForAutoCycleTick(ctx) {
 ; ------------------------------------------------------------------------------
 WatchForRetryButtonTick(ctx) {
     global isAutomationEnabled, automationMode, RETRY_CLICK_COOLDOWN_MS, lastAction
+    global g_autoSawEndRound
 
     if !isAutomationEnabled || automationMode != "retry" || !WinExist(ROBLOX_EXE)
         return
 
     coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-    if !coords
+    if !coords {
+        g_autoSawEndRound := false
         return
+    }
+    g_autoSawEndRound := true
 
     lastAction := "Clicked retry"
     ClickFoundButton(coords)
