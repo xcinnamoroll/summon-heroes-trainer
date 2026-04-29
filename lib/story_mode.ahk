@@ -489,10 +489,10 @@ WatchForAutoCycleTick(ctx) {
         return
 
     if (autoPhase = "retry") {
-        coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-        if !coords
-            return
-
+        ; If we've maxed retries, advance buttons are checked first and clicked
+        ; regardless of whether the Retry button is also on screen — this lets
+        ; clean wins (no Retry button) advance immediately without waiting for
+        ; the advance-phase grace period.
         if (autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE) {
             advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
             if !advCoords
@@ -503,12 +503,18 @@ WatchForAutoCycleTick(ctx) {
                 autoRetryCount := 0
                 autoAdvanceStartTick := 0
                 Sleep RETRY_CLICK_COOLDOWN_MS
-            } else {
-                autoPhase := "advance"
-                autoAdvanceStartTick := A_TickCount
+                return
             }
+            ; Advance buttons not visible yet — enter advance phase so the
+            ; grace-period fallback to retry-only mode still applies.
+            autoPhase := "advance"
+            autoAdvanceStartTick := A_TickCount
             return
         }
+
+        coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+        if !coords
+            return
 
         lastAction := "Clicked retry"
         ClickFoundButton(coords)
