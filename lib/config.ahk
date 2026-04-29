@@ -9,7 +9,7 @@ CoordMode "Mouse", "Screen"
 ; ------------------------------------------------------------------------------
 global ROBLOX_EXE := "ahk_exe RobloxPlayerBeta.exe"
 global REPO_URL := "https://github.com/xcinnamoroll/summon-heroes-trainer"
-global APP_VERSION := "1.0.105"
+global APP_VERSION := "1.0.106"
 global BTN_UPDATE_TEXT := "  🔄  Check for updates"
 
 global SETTINGS_FILE := APP_DATA_DIR "\settings.ini"
@@ -19,7 +19,7 @@ global IDLE_CHECK_INTERVAL_MS := 100
 global SPAM_CLICK_INTERVAL_MS := 200
 
 global RETRY_IMAGE := APP_BUTTONS_DIR "\retry_stage.png"
-global RETRY_SEARCH_INTERVAL_MS := 500
+global RETRY_SEARCH_INTERVAL_MS := 5000
 global RETRY_CLICK_COOLDOWN_MS := 1500
 global RETRY_IMAGE_VARIATION := 40
 
@@ -96,7 +96,7 @@ global AUTO_CHEST_MAPS := [
     "Sunset City",
     "Aetherwell Citadel"
 ]
-global CHEST_SCAN_INTERVAL_MS := 500
+global CHEST_SCAN_INTERVAL_MS := 5000
 
 ; Auto Chest state
 global autoChestEnabled   := false
@@ -184,7 +184,7 @@ global g_lastColor := Map()
 ; ------------------------------------------------------------------------------
 global PVP_SHOP_ICONS_DIR := APP_DATA_DIR "\pvp_shop"
 global PVP_SHOP_DETECT_DIR := APP_DATA_DIR "\pvp_shop_detect"
-global PVP_SHOP_SCAN_INTERVAL_MS := 400
+global PVP_SHOP_SCAN_INTERVAL_MS := 5000
 global PVP_SHOP_IMAGE_VARIATION := 40
 global PVP_SHOP_ITEMS := [
     { name: "Trait Reroll",    slug: "trait_reroll",          color: "FF66CC", icon: "trait_reroll.png" },
