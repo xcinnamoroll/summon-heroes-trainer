@@ -6,7 +6,7 @@ An AutoHotkey v2 automation tool for the Roblox game **Summon Heroes**. A compac
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![Status](https://img.shields.io/badge/status-unmaintained-lightgrey)
 
-> **Status: no longer maintained.** The last release is [v1.0.90](https://github.com/xcinnamoroll/summon-heroes-trainer/releases/tag/v1.0.90). The trainer still works as of that version, but no further updates, bug fixes, or compatibility patches are planned. If the in-game UI changes, image-detection-based features (Story Mode, Auto Chest, Custom Pathing triggers, PvP Shop auto-buy) may need re-captured reference images to keep working. Forks welcome.
+> **Status: no longer maintained.** The last release is [v1.0.105](https://github.com/xcinnamoroll/summon-heroes-trainer/releases/tag/v1.0.105). The trainer still works as of that version, but no further updates, bug fixes, or compatibility patches are planned. If the in-game UI changes, image-detection-based features (Story Mode, Auto Chest, Custom Pathing triggers, PvP Shop auto-buy) may need re-captured reference images to keep working. Forks welcome.
 
 ## Features
 
