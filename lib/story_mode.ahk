@@ -481,74 +481,56 @@ ClickFoundButton(coords, preDelay := 0, postDelay := 0) {
 ; Auto-Cycle Logic (retry N times, then advance to next stage, repeat)
 ; ------------------------------------------------------------------------------
 WatchForAutoCycleTick(ctx) {
-    global isAutomationEnabled, autoRetryCount, autoPhase, autoAdvanceStartTick
-    global AUTO_RETRIES_BEFORE_ADVANCE, AUTO_ADVANCE_GRACE_MS, RETRY_CLICK_COOLDOWN_MS
-    global automationMode, btnAuto, btnRetry, lastAction
+    global isAutomationEnabled, autoRetryCount, AUTO_RETRIES_BEFORE_ADVANCE
+    global RETRY_CLICK_COOLDOWN_MS, automationMode, btnAuto, btnRetry, lastAction
 
     if !isAutomationEnabled || automationMode != "auto" || !WinExist(ROBLOX_EXE)
         return
 
-    if (autoPhase = "retry") {
-        ; If we've maxed retries, advance buttons are checked first and clicked
-        ; regardless of whether the Retry button is also on screen — this lets
-        ; clean wins (no Retry button) advance immediately without waiting for
-        ; the advance-phase grace period.
-        if (autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE) {
-            advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
-            if !advCoords
-                advCoords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
-            if advCoords {
-                lastAction := "Clicked next stage"
-                ClickFoundButton(advCoords)
-                autoRetryCount := 0
-                autoAdvanceStartTick := 0
-                Sleep RETRY_CLICK_COOLDOWN_MS
-                return
-            }
-            ; Advance buttons not visible yet — enter advance phase so the
-            ; grace-period fallback to retry-only mode still applies.
-            autoPhase := "advance"
-            autoAdvanceStartTick := A_TickCount
+    ; Retries maxed: prefer advance buttons. If advance isn't visible but Retry
+    ; is, the game has ended in a loss with no advance option — fall back to
+    ; retry-only mode. If neither is visible, the round is still in progress;
+    ; wait silently. (Don't demote to retry-only until end-of-round buttons
+    ; actually appear.)
+    if (autoRetryCount >= AUTO_RETRIES_BEFORE_ADVANCE) {
+        advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
+        if !advCoords
+            advCoords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
+        if advCoords {
+            lastAction := "Clicked next stage"
+            ClickFoundButton(advCoords)
+            autoRetryCount := 0
+            Sleep RETRY_CLICK_COOLDOWN_MS
             return
         }
+        retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+        if retryCoords {
+            autoRetryCount := 0
+            automationMode := "retry"
+            SetModeBtn(btnAuto, false)
+            SetModeBtn(btnRetry, true)
+        }
+        return
+    }
 
-        coords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
-        if !coords
-            return
-
+    ; Below max: prefer Retry on a loss screen. If Retry isn't visible but an
+    ; advance button is, the player won the stage cleanly — click advance.
+    retryCoords := ctx.FindPrintWindow(RETRY_IMAGE, RETRY_IMAGE_VARIATION)
+    if retryCoords {
         lastAction := "Clicked retry"
-        ClickFoundButton(coords)
+        ClickFoundButton(retryCoords)
         autoRetryCount++
         Sleep RETRY_CLICK_COOLDOWN_MS
         return
     }
-
-    if (autoPhase = "advance") {
-        coords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
-        if !coords
-            coords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
-        if coords {
-            lastAction := "Clicked next stage"
-            ClickFoundButton(coords)
-            autoRetryCount := 0
-            autoPhase := "retry"
-            autoAdvanceStartTick := 0
-            Sleep RETRY_CLICK_COOLDOWN_MS
-            return
-        }
-
-        if (A_TickCount - autoAdvanceStartTick < AUTO_ADVANCE_GRACE_MS)
-            return
-
-        ; Grace period expired — fall back to retry-only mode. No timer fiddling
-        ; needed; the retry tick gates on automationMode, the auto tick will
-        ; early-return on the next call.
+    advCoords := ctx.FindPrintWindow(NEXT_STAGE_IMAGE, NEXT_STAGE_IMAGE_VARIATION)
+    if !advCoords
+        advCoords := ctx.FindPrintWindow(NEXT_MAP_IMAGE, NEXT_MAP_IMAGE_VARIATION)
+    if advCoords {
+        lastAction := "Clicked next stage"
+        ClickFoundButton(advCoords)
         autoRetryCount := 0
-        autoPhase := "retry"
-        autoAdvanceStartTick := 0
-        automationMode := "retry"
-        SetModeBtn(btnAuto, false)
-        SetModeBtn(btnRetry, true)
+        Sleep RETRY_CLICK_COOLDOWN_MS
     }
 }
 
