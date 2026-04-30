@@ -9,7 +9,7 @@ CoordMode "Mouse", "Screen"
 ; ------------------------------------------------------------------------------
 global ROBLOX_EXE := "ahk_exe RobloxPlayerBeta.exe"
 global REPO_URL := "https://github.com/xcinnamoroll/summon-heroes-trainer"
-global APP_VERSION := "1.0.106"
+global APP_VERSION := "1.0.107"
 global BTN_UPDATE_TEXT := "  🔄  Check for updates"
 
 global SETTINGS_FILE := APP_DATA_DIR "\settings.ini"
@@ -184,7 +184,7 @@ global g_lastColor := Map()
 ; ------------------------------------------------------------------------------
 global PVP_SHOP_ICONS_DIR := APP_DATA_DIR "\pvp_shop"
 global PVP_SHOP_DETECT_DIR := APP_DATA_DIR "\pvp_shop_detect"
-global PVP_SHOP_SCAN_INTERVAL_MS := 5000
+global PVP_SHOP_SCAN_INTERVAL_MS := 800
 global PVP_SHOP_IMAGE_VARIATION := 40
 global PVP_SHOP_ITEMS := [
     { name: "Trait Reroll",    slug: "trait_reroll",          color: "FF66CC", icon: "trait_reroll.png" },
